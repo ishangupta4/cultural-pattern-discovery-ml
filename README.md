@@ -5,6 +5,8 @@ Machine learning analysis of the Metropolitan Museum of Art dataset to classify 
 
 This project explores the Metropolitan Museum of Art's open-access metadata to discover cultural periods and classify artworks using classical machine learning techniques, without relying on any image data.
 
+For a detailed project abstract, see [PROJECT_ABSTRACT.md](./PROJECT_ABSTRACT.md).
+
 ## Dataset
 
 The Met Open Access dataset is released under a CC0 license and is available here:
@@ -15,7 +17,7 @@ The Met Open Access dataset is released under a CC0 license and is available her
 
 ### Prerequisites
 
-- Python 3.10+
+- Python 3.14+
 - pip
 
 ### 1. Clone the Repository
@@ -27,10 +29,10 @@ git clone
 ### 2. Create and Activate a Virtual Environment
 
 ```bash
-python -m venv venv
+python -m venv .venv
 
 # Linux / macOS
-source venv/bin/activate
+source .venv/bin/activate
 
 # Windows
 venv\Scripts\activate
