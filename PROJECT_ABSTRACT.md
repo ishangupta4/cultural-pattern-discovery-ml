@@ -29,3 +29,21 @@ We plan to organize our investigation in the form of a comparison between famili
 ### Motivation
 
 Our research material contributes to an emerging, small body of research on the intersection of machine learning and cultural heritage data. Prior surveys have found that adoption of ML in this area is still limited with most work being focused on image classification and not structured metadata analysis. Recent studies have shown that it is possible to effectively curate art exhibitions using simple text features extracted from metadata columns, and that tabular metadata can be in the same ballpark as approaches that also use images and text embeddings. These works suggest that structured museum data can be used for classical ML and is understudied, and there is much value to extract from metadata features using careful feature engineering.
+
+## Scope of Work
+ 
+EDA and the final report are collective efforts across all three team members. The remaining core project work is divided as follows:
+ 
+**Ishan Gupta — Data Preprocessing & Feature Engineering**
+ 
+Owns the data pipeline: missing value imputation, encoding of high cardinality categoricals, TF IDF vectorization of free text columns, numerical feature engineering, and class imbalance handling. Delivers a shared, reusable preprocessing pipeline that feeds into both the supervised and unsupervised tracks.
+ 
+**Kaushal Nair — Supervised Classification**
+ 
+Builds and evaluates classification models (Logistic Regression, Random Forest, XGBoost) with appropriate metrics for imbalanced classes. Handles hyperparameter tuning, cross validation, and SHAP based interpretability analysis.
+ 
+**Dishaa Bornare — Unsupervised Clustering & Visualization**
+ 
+Applies K Means and hierarchical clustering, selects optimal cluster counts, and uses UMAP for dimensionality reduction and visualization. Evaluates whether discovered clusters align with known art historical periods.
+ 
+ 
