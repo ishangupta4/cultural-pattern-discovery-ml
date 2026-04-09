@@ -221,3 +221,6 @@ CLAUDE.md
 
 # For JetBrains IDEs
 .idea
+
+# macOS
+.DS_Store
