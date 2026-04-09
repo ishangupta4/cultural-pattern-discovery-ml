@@ -161,7 +161,7 @@ Only 39.7% of objects (192,455 records) have any tags. Among those that do, obje
 
 `Object Begin Date` and `Object End Date` are fully populated and support negative integers for BCE dates. The raw range observed in the data is −400,000 to +5,000, which includes values that are clearly data entry errors or administrative placeholders.
 
-- Values below −4,000: 2,074 records
+- Values below −7,000: 99 records
 - Values above 2,025: 2 records
 
 These extremes should be clipped before deriving any temporal features. Two useful engineered features from these columns are:
