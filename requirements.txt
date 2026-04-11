@@ -8,3 +8,4 @@ scikit-learn
 missingno
 xgboost
 shap
+torch
