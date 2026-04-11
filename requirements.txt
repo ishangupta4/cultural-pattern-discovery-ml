@@ -1,6 +1,9 @@
+joblib
+scipy
 pandas
 numpy
 matplotlib
 seaborn
 scikit-learn
 missingno
+xgboost
