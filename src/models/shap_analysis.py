@@ -41,11 +41,43 @@ def _ts():
 
 
 def _get_feature_names(pipeline, n_features):
-    """Return feature names from pipeline, falling back to generic indices."""
+    """Return feature names from the fitted pipeline.
+
+    First tries pipeline.get_feature_names_out(). If that fails (our custom
+    transformers don't implement it), reconstructs names manually by querying
+    each fitted sub-transformer in the ColumnTransformer directly — including
+    the actual TF-IDF vocabularies so medium/tags/period tokens are readable.
+    Pads or trims to n_features if the manual count is off by one.
+    """
     try:
         return list(pipeline.get_feature_names_out())
     except Exception:
-        return [f"feature_{i}" for i in range(n_features)]
+        pass
+
+    from src.preprocessing import BOOL_COLS, CATEGORICAL_COLS, NUMERIC_COLS
+
+    ct = pipeline["preprocessor"]  # ColumnTransformer
+    medium_tokens = ct.named_transformers_["medium"].vectorizer_.get_feature_names_out()
+    tags_tokens   = ct.named_transformers_["tags"].vectorizer_.get_feature_names_out()
+    period_tokens = ct.named_transformers_["period"].vectorizer_.get_feature_names_out()
+
+    names = (
+        list(NUMERIC_COLS)                                      # 5
+        + ["artist_nationality"]                                # 1
+        + list(CATEGORICAL_COLS)                                # 4
+        + list(BOOL_COLS)                                       # 3
+        + [f"medium__{t}" for t in medium_tokens]              # 100
+        + [f"tags__{t}" for t in tags_tokens]                  # 50
+        + [f"period__{t}" for t in period_tokens]              # 50
+    )
+
+    # Guard against off-by-one between manual count and actual matrix width
+    if len(names) < n_features:
+        names += [f"feature_{i}" for i in range(len(names), n_features)]
+    elif len(names) > n_features:
+        names = names[:n_features]
+
+    return names
 
 
 def run_shap(model_path="models/xgb_model.json", sample_size=2000):
@@ -69,6 +101,10 @@ def run_shap(model_path="models/xgb_model.json", sample_size=2000):
     X_shap_csr = sp.csr_matrix(X_shap)
     n_features = X_shap_csr.shape[1]
     feature_names = _get_feature_names(data["pipeline"], n_features)
+
+    print(f"\nFeature names (first 20 of {len(feature_names)}):")
+    for name in feature_names[:20]:
+        print(f"  {name}")
 
     explainer = shap.TreeExplainer(model)
     shap_values = explainer.shap_values(X_shap_csr)
@@ -102,10 +138,12 @@ def plot_global_importance(shap_values, X_shap, feature_names):
     print(f"Saved global SHAP importance → {path}")
 
 
-def plot_class_shap(shap_values, X_shap, feature_names, class_idx, class_name):
+def plot_class_shap(shap_values, X_shap, feature_names, class_idx, class_name, label, f1_score):
     """Per-class SHAP summary plot (beeswarm) for one department.
 
-    Saves to outputs/figures/shap_{class_name}.png.
+    label    — 'best', 'worst', or 'mid'
+    f1_score — float, used in the filename
+    Saves to outputs/figures/shap_{label}_{dept}_{f1}.png.
     """
     out_dir = os.path.join(PROJECT_ROOT, "outputs", "figures")
     os.makedirs(out_dir, exist_ok=True)
@@ -123,9 +161,14 @@ def plot_class_shap(shap_values, X_shap, feature_names, class_idx, class_name):
         max_display=20,
         show=False,
     )
-    plt.title(f"SHAP — {class_name}")
-    safe_name = class_name.replace(" ", "_").replace(",", "").replace("&", "and")
-    path = os.path.join(out_dir, f"shap_{safe_name}_{_ts()}.png")
+    plt.title(f"SHAP — {class_name} (F1: {f1_score:.2f})")
+    safe_name = (
+        class_name.lower()
+        .replace(" ", "_")
+        .replace(",", "")
+        .replace("&", "and")
+    )
+    path = os.path.join(out_dir, f"shap_{label}_{safe_name}_f1_{f1_score:.2f}.png")
     plt.savefig(path, dpi=150, bbox_inches="tight")
     plt.close()
     print(f"Saved class SHAP plot ({class_name}) → {path}")
@@ -159,10 +202,16 @@ if __name__ == "__main__":
         report_df.index.isin(class_names), "f1-score"
     ].sort_values()
 
-    worst_name  = f1_series.index[0]
-    best_name   = f1_series.index[-1]
-    mid_name    = f1_series.index[len(f1_series) // 2]
+    selections = {
+        "worst": (f1_series.index[0],              f1_series.iloc[0]),
+        "mid":   (f1_series.index[len(f1_series) // 2], f1_series.iloc[len(f1_series) // 2]),
+        "best":  (f1_series.index[-1],             f1_series.iloc[-1]),
+    }
 
-    for dept_name in [best_name, worst_name, mid_name]:
+    print("\nDepartments selected for per-class SHAP plots:")
+    for label, (dept_name, f1) in selections.items():
+        print(f"  {label:5s}: {dept_name} (F1 = {f1:.4f})")
+
+    for label, (dept_name, f1) in selections.items():
         class_idx = list(class_names).index(dept_name)
-        plot_class_shap(shap_values, X_shap_csr, feature_names, class_idx, dept_name)
+        plot_class_shap(shap_values, X_shap_csr, feature_names, class_idx, dept_name, label, f1)
