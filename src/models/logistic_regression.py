@@ -5,6 +5,7 @@
 #   it never materializes a dense gradient for the full dataset, so memory stays
 #   proportional to the batch size. It also converges faster than SGD on smooth
 #   objectives because it uses variance reduction (stored past gradients).
+#   Note: sklearn ≥1.8 removed n_jobs support for LogisticRegression.
 #
 # class_weight='balanced':
 #   sklearn computes per-class weights as:
@@ -30,7 +31,7 @@ def train(X_train, y_train):
         max_iter=1000,
         solver="saga",
         random_state=42,
-        n_jobs=-1,
+        verbose=1,
     )
     model.fit(X_train, y_train)
     return model
