@@ -136,12 +136,17 @@ def train(X_train, y_train, le, department_groups, device='cpu'):
         X_group = X_csr[mask]
         y_group_depts = y_train[mask]
 
+        # Re-encode to contiguous [0, n_depts) — XGBoost requires this
+        local_le = LabelEncoder()
+        y_local = local_le.fit_transform(y_group_depts)
+
         specialist = _make_xgb(device)
         specialist.fit(
-            X_group, y_group_depts,
-            sample_weight=compute_sample_weight('balanced', y_group_depts),
+            X_group, y_local,
+            sample_weight=compute_sample_weight('balanced', y_local),
         )
-        specialist_models[group_name] = specialist
+        # Store model + local encoder together so predict can decode back to global labels
+        specialist_models[group_name] = (specialist, local_le)
         print(f"  [{group_name}] specialist trained on {mask.sum()} samples ({len(depts)} classes)")
 
     return stage1_model, specialist_models, group_le, department_groups
@@ -170,7 +175,9 @@ def predict(X, stage1_model, specialist_models, group_le, le, department_groups)
         if group_name in single_dept:
             y_pred[mask] = single_dept[group_name]
         else:
-            y_pred[mask] = specialist_models[group_name].predict(X_csr[mask])
+            specialist, local_le = specialist_models[group_name]
+            local_preds = specialist.predict(X_csr[mask])
+            y_pred[mask] = local_le.inverse_transform(local_preds)
 
     return y_pred
 
@@ -184,13 +191,17 @@ def save(stage1_model, specialist_models, group_le, path_prefix='models/hierarch
     stage1_model.save_model(stage1_path)
     print(f"Saved stage 1 → {stage1_path}")
 
-    for group_name, model in specialist_models.items():
-        if model is None:
+    for group_name, entry in specialist_models.items():
+        if entry is None:
             continue
+        specialist, local_le = entry
         safe_name = group_name.replace(' ', '_').lower()
-        path = os.path.join(PROJECT_ROOT, f"{path_prefix}_{safe_name}.json")
-        model.save_model(path)
-        print(f"Saved specialist [{group_name}] → {path}")
+        model_path = os.path.join(PROJECT_ROOT, f"{path_prefix}_{safe_name}.json")
+        specialist.save_model(model_path)
+        print(f"Saved specialist [{group_name}] → {model_path}")
+        le_path = os.path.join(PROJECT_ROOT, f"{path_prefix}_{safe_name}_le.joblib")
+        joblib.dump(local_le, le_path)
+        print(f"Saved specialist LabelEncoder [{group_name}] → {le_path}")
 
     le_path = os.path.join(PROJECT_ROOT, f"{path_prefix}_group_le.joblib")
     joblib.dump(group_le, le_path)
@@ -246,7 +257,8 @@ if __name__ == "__main__":
         else:
             X_group = X_test[true_mask]
             y_group_depts_true = y_test[true_mask]
-            y_group_depts_pred = specialist_models[group_name].predict(X_group)
+            specialist, local_le = specialist_models[group_name]
+            y_group_depts_pred = local_le.inverse_transform(specialist.predict(X_group))
             dept_labels = [le.transform([d])[0] for d in depts if d in le.classes_]
             report = classification_report(
                 y_group_depts_true, y_group_depts_pred,
