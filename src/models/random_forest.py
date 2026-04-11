@@ -25,6 +25,7 @@
 
 import argparse
 import os
+from datetime import datetime
 
 import joblib
 import matplotlib.pyplot as plt
@@ -79,7 +80,8 @@ def save_feature_importances(model, pipeline, top_n=30):
     ax.set_title(f"RF feature importances — top {top_n}")
     fig.tight_layout()
 
-    path = os.path.join(out_dir, "rf_feature_importance.png")
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    path = os.path.join(out_dir, f"rf_feature_importance_{ts}.png")
     fig.savefig(path, dpi=150)
     plt.close(fig)
     print(f"Saved feature importance chart → {path}")

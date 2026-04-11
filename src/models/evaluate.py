@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 
 import joblib
 import numpy as np
@@ -6,6 +7,11 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import scipy.sparse
 from sklearn.metrics import classification_report, ConfusionMatrixDisplay, confusion_matrix
+
+
+def _ts():
+    """Return a timestamp string for use in output filenames."""
+    return datetime.now().strftime("%Y%m%d_%H%M%S")
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -49,7 +55,7 @@ def save_report(report_dict, model_name):
     out_dir = os.path.join(PROJECT_ROOT, "outputs", "metrics")
     os.makedirs(out_dir, exist_ok=True)
     df = pd.DataFrame(report_dict).T
-    path = os.path.join(out_dir, f"{model_name}_report.csv")
+    path = os.path.join(out_dir, f"{model_name}_report_{_ts()}.csv")
     df.to_csv(path)
     print(f"Saved report → {path}")
 
@@ -70,7 +76,7 @@ def plot_confusion_matrix(y_test, y_pred, label_names, model_name):
     ax.set_title(f"{model_name} — Normalized Confusion Matrix")
     fig.tight_layout()
 
-    path = os.path.join(out_dir, f"{model_name}_confusion_matrix.png")
+    path = os.path.join(out_dir, f"{model_name}_confusion_matrix_{_ts()}.png")
     fig.savefig(path, dpi=150)
     plt.close(fig)
     print(f"Saved confusion matrix → {path}")
@@ -112,7 +118,7 @@ def plot_model_comparison(reports_dict):
     ax.legend()
     fig.tight_layout()
 
-    path = os.path.join(out_dir, "model_comparison.png")
+    path = os.path.join(out_dir, f"model_comparison_{_ts()}.png")
     fig.savefig(path, dpi=150)
     plt.close(fig)
     print(f"Saved model comparison → {path}")
