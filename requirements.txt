@@ -1,3 +1,4 @@
+umap-learn
 joblib
 scipy
 pandas
