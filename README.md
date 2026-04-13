@@ -1,6 +1,6 @@
 # Discovering Cultural Periods from Museum Metadata with Classical Machine Learning
 
-![The Metropolitan Museum of Art](assets/Metropolitan_Museum_of_Art_(The_Met)_-_Central_Park,_NYC.jpg)
+![The Metropolitan Museum of Art](met_museum.jpg)
 
 Machine learning analysis of the Metropolitan Museum of Art dataset to classify curatorial departments and discover latent cultural patterns using metadata features.
 
