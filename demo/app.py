@@ -230,6 +230,26 @@ with tab2:
         if _k not in st.session_state:
             st.session_state[_k] = _v
 
+    # ── Callbacks (must be defined before any widget renders) ────────────────
+    def _do_predict() -> None:
+        """on_click callback for the Predict button."""
+        st.session_state["pred_result"] = predict(
+            medium=st.session_state["pred_medium"],
+            culture=st.session_state["pred_culture"],
+            tags=st.session_state["pred_tags"],
+            object_begin_date=int(st.session_state["pred_begin"]),
+            object_end_date=int(st.session_state["pred_end"]),
+        )
+
+    def _load_example(samp: dict) -> None:
+        """on_click callback for each example button."""
+        st.session_state["pred_medium"]  = samp.get("Medium",  "")
+        st.session_state["pred_culture"] = samp.get("Culture", "")
+        st.session_state["pred_tags"]    = samp.get("Tags",    "")
+        st.session_state["pred_begin"]   = int(samp.get("Object Begin Date", 1850))
+        st.session_state["pred_end"]     = int(samp.get("Object End Date",   1900))
+        st.session_state["pred_result"]  = None
+
     left_col, right_col = st.columns(2)
 
     # ── Left: inputs ──────────────────────────────────────────────────────────
@@ -254,15 +274,7 @@ with tab2:
                 key="pred_end",
             )
 
-        if st.button("🎯 Predict Department", type="primary"):
-            _inp = {
-                "Medium":            st.session_state["pred_medium"],
-                "Culture":           st.session_state["pred_culture"],
-                "Tags":              st.session_state["pred_tags"],
-                "Object Begin Date": st.session_state["pred_begin"],
-                "Object End Date":   st.session_state["pred_end"],
-            }
-            st.session_state["pred_result"] = predict(_inp)
+        st.button("🎯 Predict Department", type="primary", on_click=_do_predict)
 
         st.markdown("---")
         st.markdown("**Try an example:**")
@@ -272,14 +284,10 @@ with tab2:
         for _i, (_col, _samp) in enumerate(zip(_ex_cols, _samples)):
             _lbl   = _samp.get("label", f"#{_i+1}")
             _short = (_lbl[:17] + "…") if len(_lbl) > 17 else _lbl
-            if _col.button(_short, key=f"ex_{_i}"):
-                st.session_state["pred_medium"]  = _samp.get("Medium",  "")
-                st.session_state["pred_culture"] = _samp.get("Culture", "")
-                st.session_state["pred_tags"]    = _samp.get("Tags",    "")
-                st.session_state["pred_begin"]   = int(_samp.get("Object Begin Date", 1850))
-                st.session_state["pred_end"]     = int(_samp.get("Object End Date",   1900))
-                st.session_state["pred_result"]  = None
-                st.rerun()
+            _col.button(
+                _short, key=f"ex_{_i}",
+                on_click=_load_example, args=(_samp,),
+            )
 
     # ── Right: results ────────────────────────────────────────────────────────
     with right_col:
