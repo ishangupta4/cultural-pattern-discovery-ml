@@ -80,10 +80,6 @@ def _embed(fig: go.Figure, height: int) -> str:
 # ── Header ────────────────────────────────────────────────────────────────────
 
 st.title("🏛️ Neural Beings — Met Museum Cultural Pattern Discovery")
-st.markdown(
-    "Supervised department classification and unsupervised cultural pattern discovery "
-    "on 485k artworks from the Metropolitan Museum of Art open-access dataset."
-)
 
 tab1, tab2 = st.tabs(["🌌 UMAP Explorer", "🔮 Guess the Department"])
 
@@ -354,6 +350,5 @@ with tab2:
 
 st.divider()
 st.caption(
-    "CS 6140 · Northeastern University · "
-    "Dishaa Bornare · Ishan Gupta · Kaushal Nair"
+    "CS 6140 · Northeastern University "
 )
