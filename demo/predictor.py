@@ -169,27 +169,55 @@ def _build_feature_vector(inputs: dict[str, Any]) -> "scipy.sparse.csr_matrix":
 
 # ── Public API ────────────────────────────────────────────────────────────────
 
-def predict(inputs: dict[str, Any]) -> dict[str, Any]:
+def predict(
+    inputs: "dict[str, Any] | None" = None,
+    *,
+    medium: str = "",
+    culture: str = "",
+    tags: str = "",
+    period: str = "",
+    object_begin_date: "int | None" = None,
+    object_end_date: "int | None" = None,
+    **kwargs: Any,
+) -> dict[str, Any]:
     """Predict the Met Museum department from metadata inputs.
 
-    Parameters
-    ----------
-    inputs : dict
-        Keys (all optional, unknown values fall back to defaults):
-          "Medium", "Tags", "Period", "Culture", "Classification",
-          "Object Name", "Artist Role", "Artist Nationality",
-          "Artist Gender", "Object Begin Date", "Object End Date",
-          "AccessionYear", "Is Highlight", "Is Timeline Work",
-          "Is Public Domain"
+    Accepts either a dict (used by the Streamlit app) or individual keyword
+    arguments (used by the smoke-test CLI):
+
+        predict({"Medium": "Oil on canvas", ...})          # dict form
+        predict(medium="Oil on canvas", culture="French")  # kwarg form
+
+    Parameters — dict keys (all optional):
+      "Medium", "Tags", "Period", "Culture", "Classification",
+      "Object Name", "Artist Role", "Artist Nationality",
+      "Artist Gender", "Object Begin Date", "Object End Date",
+      "AccessionYear", "Is Highlight", "Is Timeline Work", "Is Public Domain"
 
     Returns
     -------
     dict with keys:
-      "department"   : str   — predicted department name
-      "confidence"   : float — probability of top class (0–1)
-      "probabilities": dict  — {department_name: probability} for all 19 classes
+      "department"          : str   — predicted department name
+      "predicted_department": str   — alias for "department"
+      "confidence"          : float — probability of top class (0–1)
+      "probabilities"       : dict  — {department_name: probability} for all 19 classes
+      "top5"                : list  — [(dept, prob), ...] top-5 sorted by probability desc
     """
     import xgboost as xgb
+
+    # Normalise calling convention: kwargs → dict
+    if inputs is None:
+        inputs = {
+            "Medium":            medium,
+            "Culture":           culture,
+            "Tags":              tags,
+            "Period":            period,
+        }
+        if object_begin_date is not None:
+            inputs["Object Begin Date"] = object_begin_date
+        if object_end_date is not None:
+            inputs["Object End Date"] = object_end_date
+        inputs.update(kwargs)
 
     booster = _load_booster()
     le = _load_label_encoder()
@@ -200,11 +228,14 @@ def predict(inputs: dict[str, Any]) -> dict[str, Any]:
     idx = int(np.argmax(proba))
     dept = le.classes_[idx]
     prob_map = {cls: float(proba[i]) for i, cls in enumerate(le.classes_)}
+    top5 = sorted(prob_map.items(), key=lambda x: x[1], reverse=True)[:5]
 
     return {
-        "department":    dept,
-        "confidence":    float(proba[idx]),
-        "probabilities": prob_map,
+        "department":           dept,
+        "predicted_department": dept,          # alias for smoke-test compatibility
+        "confidence":           float(proba[idx]),
+        "probabilities":        prob_map,
+        "top5":                 top5,          # alias for smoke-test compatibility
     }
 
 
